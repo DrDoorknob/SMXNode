@@ -46,7 +46,7 @@ WavFile.belongsTo(MixSegment);
 
 CompoundWord.hasMany(MixSegment);
 
-schema.automigrate(err => {
+schema.autoupdate(err => {
 	if (!err) {
 		console.log("Automigration successful");
 	}

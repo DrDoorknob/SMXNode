@@ -3,17 +3,25 @@
 <head>
 </head>
 <body>
-	<form target="uploadit" action="/line" method="POST" enctype="multipart/form-data">
-		<h3>Make a new line</h3>
-		<div>
-			<label>Sentence Content</label>
-			<textarea name="sentence" style="font-family: inherit;"></textarea>
-		</div>
+	<form target="dothing" action="/wav" method="POST" enctype="multipart/form-data">
+		<h3>Upload a WAV</h3>
 		<div>
 			<label>WAV File
+			<!-- TODO: Validate filetype -->
 			<input type="file" name="wav"></label>
 		</div>
 		<button>Submit</button>
 	</form>
+	<% unextracted.forEach(wavFile => {%>
+		<form target="dothing" action="/line" method="POST" enctype="multipart/form-data">
+			<h3>File "<%= wavFile.filename %>" is unextracted</h3>
+			<input hidden name="wavFileId" value="<%= wavFile.id %>">
+			<div>
+				<label>Sentence Content</label>
+				<textarea name="sentence" style="font-family: inherit;"></textarea>
+			</div>
+			<button>Submit</button>
+		</form>
+	<% }); %>
 </body>
 </html>
