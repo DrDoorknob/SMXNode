@@ -55,4 +55,8 @@ schema.automigrate(err => {
 	}
 });
 
+if (schema.models.WavFile !== WavFile) {
+	console.log("I was wrong! I FORESAW THIS!!");
+}
+
 module.exports = schema;
