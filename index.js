@@ -4,6 +4,15 @@ var multer = require('multer');
 var uuid4 = require('uuid/v4');
 var app = Express();
 
+SmxSchema.autoupdate(err => {
+	if (!err) {
+		console.log("Automigration successful");
+	}
+	else {
+		console.error("Automigration failed - " + err);
+	}
+});
+
 // html rendering
 app.set('views',__dirname + '/views');
 app.set('view engine', 'ejs');

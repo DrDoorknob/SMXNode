@@ -7,4 +7,5 @@ schema.automigrate(err => {
 	else {
 		console.error("Automigration failed - " + err);
 	}
+	process.exit(err ? 1 : 0);
 });

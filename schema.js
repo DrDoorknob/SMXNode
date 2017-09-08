@@ -9,7 +9,8 @@ var schema = new Schema('mysql', {
 var WavFile = schema.define('WavFile', {
 	filename: {type: String, limit: 255},
 	uuid: {type: String, limit: 37}, // 37 when counting dashes
-	bitrate: {type: Number}
+	bitrate: {type: Number},
+	length: {type: Number}
 });
 
 var LineGroup = schema.define('LineGroup', {
@@ -23,11 +24,16 @@ var Line = schema.define('Line', {
 var Word = schema.define('Word', {
 	txt: {type: String, limit: 20},
 	begin: {type: Number, dataType: 'float', precision: 20},
-	end: {type: Number, dataType: 'float', precision: 20}
+	end: {type: Number, dataType: 'float', precision: 20},
+	type: {type: String, limit: 10}
+});
+
+var LineWord = schema.define('LineWord', {
+
 });
 
 var CompoundWord = schema.define('CompoundWord', {
-	txt: {type: String, limit: 20}
+	
 });
 
 var MixSegment = schema.define('MixSegment', {
@@ -39,20 +45,14 @@ WavFile.belongsTo(Line);
 
 LineGroup.hasMany(Line);
 
-Line.hasMany(Word);
+Line.hasMany(LineWord);
+
+LineWord.belongsTo(Word);
+CompoundWord.belongsTo(Word);
 
 MixSegment.belongsTo(WavFile);
 WavFile.belongsTo(MixSegment);
 
 CompoundWord.hasMany(MixSegment);
-
-schema.autoupdate(err => {
-	if (!err) {
-		console.log("Automigration successful");
-	}
-	else {
-		console.error("Automigration failed - " + err);
-	}
-});
 
 module.exports = schema;

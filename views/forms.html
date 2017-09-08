@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+	<title>SMXNode Master Controls</title>
 </head>
 <body>
 	<form target="dothing" action="/wav" method="POST" enctype="multipart/form-data">
@@ -23,5 +24,9 @@
 			<button>Submit</button>
 		</form>
 	<% }); %>
+	<% lines.forEach(line => {%>
+		<form target="dothing" action="/lineEdit" method="POST" enctype="multipart/form-data">
+		</form>
+	<%})%>
 </body>
 </html>
