@@ -1,6 +1,9 @@
 schema = require('../schema');
 fs = require('fs');
 path = require('path');
+exceptions = require('../util/exceptions');
+SentenceExtractException = exceptions.SentenceExtractException;
+
 
 models = schema.models;
 
@@ -31,30 +34,49 @@ function renderPromiseJson(res, p) {
 	});
 }
 
-function makeLineWord(word, lineId, begin, end) {
+function normalizeWordTxt(word) {
 	word = word.toLowerCase();
 	word = word.replace(/[\.\!\?\']/g, '');
+	return word;
+}
+
+function findAllIndicesInArray(haystack, needle) {
+	var indices = [];
+	var startIndex = 0;
+	var findIndex;
+	while ((findIndex = haystack.indexOf(needle, startIndex)) !== -1) {
+		indices.push(findIndex);
+		startIndex = findIndex + 1;
+	}
+	return indices;
+}
+
+function makeLineWord(word, lineId, begin, end) {
+	word = normalizeWordTxt(word);
 	var word = models.Word({
 		txt: word,
-		begin: begin,
-		end: end,
 		type: 'LineWord'
 	});
 	return word.save().then(savedWord => {
 		var lineWord = models.LineWord({
 			wordId: savedWord.id,
-			lineId: lineId
+			lineId: lineId,
+			begin: begin,
+			end: end,
 		});
-		return lineWord.save();
+		return lineWord.save().then(savedLineWord => { return {
+			word: savedWord,
+			lineWord: savedLineWord
+		}});
 	});
 }
-
-
 
 module.exports = function(app, upload) {
 	app.get('/sanity', (req, res) => {
 		res.json({'you\'re': 'good'});
 	});
+
+	// Return the main form that shows all data and presents some forms
 	app.get('/', (req, res) => {
 		var pUnextracted = models.WavFile.all({
 			where: {lineId: null}
@@ -67,15 +89,14 @@ module.exports = function(app, upload) {
 			var lines = results[1];
 			console.log("There are " + unextracted.length + " unextracted wav files");
 			console.log("There are " + lines.length + " extracted lines");
-			var lineWords = [];
-			return Promise.all(lines.map(line => line.words())).then(wordSets => {
+			return Promise.all(lines.map(line => line.wordsView())).then(lineWords => {
 				return Promise.all(lines.map(line => line.wav())).then(wavs => {
 					return {
 						html: 'forms.html',
 						model: {
 							unextracted: unextracted,
 							lines: lines,
-							lineWords: wordSets,
+							lineWords: lineWords,
 							wavs: wavs
 						}
 					};
@@ -100,6 +121,7 @@ module.exports = function(app, upload) {
 		}));
 	});
 
+	// Download a single WAV file by its ID
 	app.get('/wav/:wavid', (req, res) => {
 		models.WavFile.find(req.params.wavid).then(wav => {
 			var filePath = path.join(__dirname, '..', 'uploads', wav.uuid);
@@ -120,20 +142,28 @@ module.exports = function(app, upload) {
 	app.post('/line', upload.none(), (req, res) => {
 		var wavFileId = req.body.wavFileId;
 		renderPromiseJson(res, models.WavFile.find(wavFileId).then(wavFile => {
+
+			return models.LineGroup.findOrCreate({
+				where: {name: req.body.lineGroupName}
+			}, {
+				name: req.body.lineGroupName
+			}).then(lineGroup => {
 			
-			var line = models.Line({
-				wavFile: req.body.wavFileId,
-				grammaticalSentence: req.body.sentence
-			});
-			wavFile.line = line;
-			var promises = [];
-			return line.save().then(savedLine => {
-				wavFile.lineId = savedLine.id;
-				var splitLine = line.grammaticalSentence.split(' ');
-				var promises = splitLine.map(
-					(word, i) => makeLineWord(word, savedLine.id, i, i+ 1));
-				promises.push(wavFile.save());
-				return Promise.all(promises);
+				var line = models.Line({
+					wavFile: req.body.wavFileId,
+					grammaticalSentence: req.body.sentence,
+					linegroupId: lineGroup.id
+				});
+				wavFile.line = line;
+				var promises = [];
+				return line.save().then(savedLine => {
+					wavFile.lineId = savedLine.id;
+					var splitLine = line.grammaticalSentence.split(' ');
+					var promises = splitLine.map(
+						(word, i) => makeLineWord(word, savedLine.id, i, i+ 1));
+					promises.push(wavFile.save());
+					return Promise.all(promises);
+				});
 			});
 		}).then(s => null));
 	});
@@ -143,7 +173,7 @@ module.exports = function(app, upload) {
 	app.post('/line/:lineId', upload.none(), (req, res) => {
 		var lineId = req.params.lineId;
 		renderPromiseJson(res, models.Line.find(lineId).then(line => {
-			return line.words().then(words => {
+			return line.linewords().then(words => {
 				var promises = words.map(word => {
 					var beginId = 'wordbegin_' + word.id;
 					if (beginId in req.body) {
@@ -160,8 +190,51 @@ module.exports = function(app, upload) {
 		}));
 	});
 
+	// Query for words based on a given sentence
 	app.get('/wordquery', upload.none(), (req, res) => {
+		var sentence = req.query.sentence;
+		var lineGroupName = req.query.lineGroupName;
+		var lgPromise = models.LineGroup.find({
+			where: {name: lineGroupName}
+		});
 		
+		renderPromiseJson(res, lgPromise.then(lineGroup => {
+			var words = [];
+			var sentencePart;
+			var wordPattern = /\S+/g;
+			while (sentencePart = wordPattern.exec(sentence)) {
+				var normalized = normalizeWordTxt(sentencePart[0]);
+				if (normalized) {
+					words.push(normalized);
+				}
+			}
+			return models.Word.all({
+				where: {txt: words}
+			}).then(foundWords => {
+				var expectedWordsSet = new Set(words);
+				var foundWordsSet = new Set(foundWords.map(fw => fw.txt));
+				var missingWords = expectedWordsSet.difference(foundWordsSet);
+				if (missingWords.size != 0) {
+					throw new SentenceExtractException("Could not find the following words: \"" + Array.from(missingWords).join(', ') + "\"");
+				}
+				var returnArr = new Array(words.length);
+				for (var i = 0; i < returnArr.length; i++) {
+					returnArr[i] = [];
+				}
+				for (var fWord of foundWords) {
+					var wordIndices = findAllIndicesInArray(words, fWord.txt);
+					for (var wordIdx of wordIndices) {
+						returnArr[wordIdx].push(fWord.wavSegmentsView());
+					}
+				}
+				return Promise.all(returnArr.map(wordResults => {
+					return Promise.all(wordResults);
+				}));
+				/*return Promise.all(words.map(word => {
+					return foundWords.filter(fWord => fWord.txt === )
+				}));*/
+			})
+		}));
 	});
 
 	// Delete a line extraction, AND all words associated with it for cleanup.

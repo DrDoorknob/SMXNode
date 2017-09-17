@@ -13,10 +13,18 @@
 		</div>
 		<button>Submit</button>
 	</form>
+	<form target="dothing" action="/wordquery" method="GET">
+		<h3>Make Dispentryporter say something!</h3>
+		<input type="hidden" name="lineGroupName" value="dispentryporter">
+		<input style="width: 300px;" name="sentence">
+		<button>Submit</button>
+	</form>
 	<% unextracted.forEach(wavFile => {%>
 		<form target="dothing" action="/line" method="POST" enctype="multipart/form-data">
 			<h3>File "<%= wavFile.filename %>" is unextracted</h3>
+			<p><a href="/wav/<%=wavFile.id%>">Listen...</a></p>
 			<input type="hidden" name="wavFileId" value="<%= wavFile.id %>">
+			<input type="hidden" name="lineGroupName" value="dispentryporter">
 			<div>
 				<label>Sentence Content</label>
 				<textarea name="sentence" style="font-family: inherit;"></textarea>

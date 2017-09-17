@@ -1,3 +1,4 @@
+var polyfills = require('./util/polyfills');
 var SmxSchema = require('./schema');
 var Express = require('express');
 var multer = require('multer');

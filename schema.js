@@ -28,11 +28,31 @@ Line.prototype.wav = function() {
 
 var Word = schema.define('Word', {
 	txt: {type: String, limit: 20},
-	begin: {type: Number, dataType: 'float', precision: 20},
-	end: {type: Number, dataType: 'float', precision: 20},
 	type: {type: String, limit: 10}
 });
 
+Line.prototype.wordsView = function() {
+	return this.linewords().then(linewords => {
+		var ids = linewords.map(lw => lw.wordId);
+		if (ids.length == 0) {
+			return [];
+		}
+		return Word.all({
+			where: {id: ids}
+		}).then(words => {
+			var wDict = {};
+			for (var word of words) {
+				wDict[word.id] = word;
+			}
+			return linewords.map(lw => {
+				return Object.assign({}, wDict[lw.wordId].toObject(), lw.toObject());
+			});
+		});
+	})
+}
+
+// Doesn't work anymore now that begin/end have moved - won't return in order
+/*
 Line.prototype.words = function() {
 	return this.linewords().then(linewords => {
 		var ids = linewords.map(lw => lw.wordId);
@@ -40,18 +60,40 @@ Line.prototype.words = function() {
 			return [];
 		}
 		return Word.all({
-			where: {id: ids},
-			order: 'begin'
+			where: {id: ids}
 		});
 	});
-}
+}*/
 var LineWord = schema.define('LineWord', {
-
+	begin: {type: Number, dataType: 'float', precision: 20},
+	end: {type: Number, dataType: 'float', precision: 20},
 });
 
 var CompoundWord = schema.define('CompoundWord', {
 	
 });
+
+Word.prototype.wavSegmentsView = function() {
+	if (this.type === 'LineWord') {
+		return LineWord.findOne({
+			where: {wordId: this.id}
+		}).then(lw => {
+			return Line.find(lw.lineId).then(line => {
+				return WavFile.findOne({
+					where: {lineId: lw.lineId}
+				}).then(wav => [{
+					wav: wav.toObject(),
+					line: line.toObject(),
+					begin: lw.begin,
+					end: lw.end
+				}]);
+			});
+		});
+	}
+	else {
+		throw new Error("Not implemented!");
+	}
+}
 
 var MixSegment = schema.define('MixSegment', {
 	begin: {type: Number, dataType: 'float', precision: 20},
@@ -68,7 +110,6 @@ LineWord.belongsTo(Word);
 CompoundWord.belongsTo(Word);
 
 MixSegment.belongsTo(WavFile);
-WavFile.belongsTo(MixSegment);
 
 CompoundWord.hasMany(MixSegment);
 
