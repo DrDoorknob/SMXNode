@@ -26,6 +26,9 @@
 	<% }); %>
 	<% lines.forEach((line, i) => {%>
 		<p>Sentence: <%=line.grammaticalSentence%></p>
+		<% if (wavs[i]) { %>
+			<p><a href="/wav/<%=wavs[i].id%>">Listen...</a></p>
+		<% } %>
 		<form target="dothing" action="/line/<%=line.id%>" method="POST" enctype="multipart/form-data">
 			<% lineWords[i].forEach(word => { %>
 				<div class="wordCustomize">

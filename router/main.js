@@ -1,6 +1,13 @@
 schema = require('../schema');
+fs = require('fs');
+path = require('path');
 
 models = schema.models;
+
+function genericError(res, err) {
+	console.error(err.stack);
+	res.status(500).json({error: err.toString()});
+}
 
 function renderPromiseForm(res, p) {
 	p.then(v => {
@@ -20,12 +27,13 @@ function renderPromiseJson(res, p) {
 			res.status(201).end();
 		}
 	}, err => {
-		console.error(err.stack);
-		res.status(500).json({error: err.toString()});
+		genericError(res, err);
 	});
 }
 
 function makeLineWord(word, lineId, begin, end) {
+	word = word.toLowerCase();
+	word = word.replace(/[\.\!\?\']/g, '');
 	var word = models.Word({
 		txt: word,
 		begin: begin,
@@ -49,7 +57,7 @@ module.exports = function(app, upload) {
 	});
 	app.get('/', (req, res) => {
 		var pUnextracted = models.WavFile.all({
-			lineId: null
+			where: {lineId: null}
 		});
 		var pLines = models.Line.all();
 		renderPromiseForm(res,
@@ -61,14 +69,17 @@ module.exports = function(app, upload) {
 			console.log("There are " + lines.length + " extracted lines");
 			var lineWords = [];
 			return Promise.all(lines.map(line => line.words())).then(wordSets => {
-				return {
-					html: 'forms.html',
-					model: {
-						unextracted: unextracted,
-						lines: lines,
-						lineWords: wordSets
-					}
-				};
+				return Promise.all(lines.map(line => line.wav())).then(wavs => {
+					return {
+						html: 'forms.html',
+						model: {
+							unextracted: unextracted,
+							lines: lines,
+							lineWords: wordSets,
+							wavs: wavs
+						}
+					};
+				});
 			});
 		}));
 	});
@@ -87,6 +98,21 @@ module.exports = function(app, upload) {
 			console.log(s);
 			ok: true
 		}));
+	});
+
+	app.get('/wav/:wavid', (req, res) => {
+		models.WavFile.find(req.params.wavid).then(wav => {
+			var filePath = path.join(__dirname, '..', 'uploads', wav.uuid);
+			var stat = fs.statSync(filePath);
+			res.writeHead(200, {
+				'Content-Type': 'audio/wav',
+				'Content-Length': stat.size
+			});
+			var readStream = fs.createReadStream(filePath);
+			readStream.pipe(res);
+		}, err => {
+			genericError(res, err);
+		});
 	});
 
 	// Extract a new line based on a WAV file (give it a grammatical sentence, and have
@@ -132,6 +158,10 @@ module.exports = function(app, upload) {
 				return Promise.all(promises).then(res => null);
 			});
 		}));
+	});
+
+	app.get('/wordquery', upload.none(), (req, res) => {
+		
 	});
 
 	// Delete a line extraction, AND all words associated with it for cleanup.

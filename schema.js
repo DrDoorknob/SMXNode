@@ -21,6 +21,10 @@ var Line = schema.define('Line', {
 	grammaticalSentence: {type: String, limit: 4096}
 });
 
+Line.prototype.wav = function() {
+	return WavFile.findOne({where: {lineId: this.id}});
+}
+
 
 var Word = schema.define('Word', {
 	txt: {type: String, limit: 20},
@@ -32,6 +36,9 @@ var Word = schema.define('Word', {
 Line.prototype.words = function() {
 	return this.linewords().then(linewords => {
 		var ids = linewords.map(lw => lw.wordId);
+		if (ids.length == 0) {
+			return [];
+		}
 		return Word.all({
 			where: {id: ids},
 			order: 'begin'
