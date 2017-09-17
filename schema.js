@@ -1,6 +1,6 @@
 var Schema = require('jugglingdb').Schema;
 var schema = new Schema('mysql', {
-	host: 'localhost',
+	host: '127.0.0.1',
 	port: 3306,
 	username: 'root',
 	database: 'sentencemix'
@@ -21,6 +21,7 @@ var Line = schema.define('Line', {
 	grammaticalSentence: {type: String, limit: 4096}
 });
 
+
 var Word = schema.define('Word', {
 	txt: {type: String, limit: 20},
 	begin: {type: Number, dataType: 'float', precision: 20},
@@ -28,6 +29,15 @@ var Word = schema.define('Word', {
 	type: {type: String, limit: 10}
 });
 
+Line.prototype.words = function() {
+	return this.linewords().then(linewords => {
+		var ids = linewords.map(lw => lw.wordId);
+		return Word.all({
+			where: {id: ids},
+			order: 'begin'
+		});
+	});
+}
 var LineWord = schema.define('LineWord', {
 
 });

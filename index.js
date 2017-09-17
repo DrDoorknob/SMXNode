@@ -33,6 +33,6 @@ var upload = multer({storage: storage});
 require('./router/main')(app, upload);
 
 // startup
-var server = app.listen(80, () => {
-	console.log("We have stated our saver on port 9999999");
+var server = app.listen(81, () => {
+	console.log("We have started SMXNode on port 81");
 })

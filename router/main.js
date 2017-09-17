@@ -49,7 +49,7 @@ module.exports = function(app, upload) {
 	});
 	app.get('/', (req, res) => {
 		var pUnextracted = models.WavFile.all({
-			line: null
+			lineId: null
 		});
 		var pLines = models.Line.all();
 		renderPromiseForm(res,
@@ -59,13 +59,17 @@ module.exports = function(app, upload) {
 			var lines = results[1];
 			console.log("There are " + unextracted.length + " unextracted wav files");
 			console.log("There are " + lines.length + " extracted lines");
-			return {
-				html: 'forms.html',
-				model: {
-					unextracted: unextracted,
-					lines: lines
-				}
-			};
+			var lineWords = [];
+			return Promise.all(lines.map(line => line.words())).then(wordSets => {
+				return {
+					html: 'forms.html',
+					model: {
+						unextracted: unextracted,
+						lines: lines,
+						lineWords: wordSets
+					}
+				};
+			});
 		}));
 	});
 	app.post('/wav', upload.single('wav'), (req, res) => {

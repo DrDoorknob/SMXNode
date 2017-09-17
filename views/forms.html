@@ -24,8 +24,12 @@
 			<button>Submit</button>
 		</form>
 	<% }); %>
-	<% lines.forEach(line => {%>
+	<% lines.forEach((line, i) => {%>
 		<form target="dothing" action="/lineEdit" method="POST" enctype="multipart/form-data">
+			<% lineWords[i].forEach(word => { %>
+				<div>Word! <%= word.txt %></div>
+			<%})%>
+			<button>Submit</button>
 		</form>
 	<%})%>
 </body>
