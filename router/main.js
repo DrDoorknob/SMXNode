@@ -72,6 +72,9 @@ module.exports = function(app, upload) {
 			});
 		}));
 	});
+
+	// Upload a new, unmarked WAV file
+	// TODO: This could be done in large batches. It should also check bitrate using nodejs' "wav" library.
 	app.post('/wav', upload.single('wav'), (req, res) => {
 		console.log("Request is " + req);
 		var file = req.file;
@@ -85,6 +88,9 @@ module.exports = function(app, upload) {
 			ok: true
 		}));
 	});
+
+	// Extract a new line based on a WAV file (give it a grammatical sentence, and have
+	// the words be automatically split out)
 	app.post('/line', upload.none(), (req, res) => {
 		var wavFileId = req.body.wavFileId;
 		renderPromiseJson(res, models.WavFile.find(wavFileId).then(wavFile => {
@@ -104,5 +110,33 @@ module.exports = function(app, upload) {
 				return Promise.all(promises);
 			});
 		}).then(s => null));
+	});
+
+	// Edit Line, assign new timings to each word. Does NOT allow you to add new words.
+	// TODO: Should use PUT, but not possible in a basic HTML view
+	app.post('/line/:lineId', upload.none(), (req, res) => {
+		var lineId = req.params.lineId;
+		renderPromiseJson(res, models.Line.find(lineId).then(line => {
+			return line.words().then(words => {
+				var promises = words.map(word => {
+					var beginId = 'wordbegin_' + word.id;
+					if (beginId in req.body) {
+						word.begin = req.body[beginId];
+						word.end = req.body['wordend_' + word.id];
+						return word.save();
+					}
+					return null;
+				});
+				// remove nulls
+				promises = promises.filter(p => p);
+				return Promise.all(promises).then(res => null);
+			});
+		}));
+	});
+
+	// Delete a line extraction, AND all words associated with it for cleanup.
+	// Maybe this could use SQL "cascade delete" however that works?
+	app.delete('/line/:lineId', (req, res) => {
+		res.status(500).json({err: "This method has not been implemented yet"});
 	})
 }

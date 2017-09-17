@@ -16,7 +16,7 @@
 	<% unextracted.forEach(wavFile => {%>
 		<form target="dothing" action="/line" method="POST" enctype="multipart/form-data">
 			<h3>File "<%= wavFile.filename %>" is unextracted</h3>
-			<input hidden name="wavFileId" value="<%= wavFile.id %>">
+			<input type="hidden" name="wavFileId" value="<%= wavFile.id %>">
 			<div>
 				<label>Sentence Content</label>
 				<textarea name="sentence" style="font-family: inherit;"></textarea>
@@ -25,9 +25,14 @@
 		</form>
 	<% }); %>
 	<% lines.forEach((line, i) => {%>
-		<form target="dothing" action="/lineEdit" method="POST" enctype="multipart/form-data">
+		<p>Sentence: <%=line.grammaticalSentence%></p>
+		<form target="dothing" action="/line/<%=line.id%>" method="POST" enctype="multipart/form-data">
 			<% lineWords[i].forEach(word => { %>
-				<div>Word! <%= word.txt %></div>
+				<div class="wordCustomize">
+					<label>Word: <%= word.txt %></label><br>
+					Begin: <input value="<%=word.begin%>" name="wordbegin_<%=word.id%>" type="number">
+					End: <input value="<%=word.end%>" name="wordend_<%=word.id%>" type="number">
+				</div>
 			<%})%>
 			<button>Submit</button>
 		</form>
