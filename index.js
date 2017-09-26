@@ -14,10 +14,11 @@ SmxSchema.autoupdate(err => {
 	}
 });
 
-// html rendering
-app.set('views',__dirname + '/views');
-app.set('view engine', 'ejs');
-app.engine('html', require('ejs').renderFile);
+// html rendering (Old multi-form view for base testing)
+//app.set('views',__dirname + '/views');
+//app.set('view engine', 'ejs');
+//app.engine('html', require('ejs').renderFile);
+app.use(Express.static('client/dist'));
 
 // file upload handling
 var storage = multer.diskStorage({
