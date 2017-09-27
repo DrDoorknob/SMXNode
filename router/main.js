@@ -217,19 +217,26 @@ module.exports = function(app, upload) {
 				if (missingWords.size != 0) {
 					throw new SentenceExtractException("Could not find the following words: \"" + Array.from(missingWords).join(', ') + "\"");
 				}
-				var returnArr = new Array(words.length);
-				for (var i = 0; i < returnArr.length; i++) {
-					returnArr[i] = [];
+				var wordPromises = new Array(words.length);
+				for (var i = 0; i < wordPromises.length; i++) {
+					wordPromises[i] = [];
 				}
 				for (var fWord of foundWords) {
 					var wordIndices = findAllIndicesInArray(words, fWord.txt);
 					for (var wordIdx of wordIndices) {
-						returnArr[wordIdx].push(fWord.wavSegmentsView());
+						wordPromises[wordIdx].push(fWord.wavSegmentsView());
 					}
 				}
-				return Promise.all(returnArr.map(wordResults => {
+				return Promise.all(wordPromises.map(wordResults => {
 					return Promise.all(wordResults);
-				}));
+				})).then(wordViewArray => {
+					return wordViewArray.map((wordOptions, i) => {
+						return {
+							word: words[i],
+							options: wordOptions
+						};
+					});
+				});
 				/*return Promise.all(words.map(word => {
 					return foundWords.filter(fWord => fWord.txt === )
 				}));*/

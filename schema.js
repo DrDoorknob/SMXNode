@@ -103,6 +103,8 @@ var MixSegment = schema.define('MixSegment', {
 WavFile.belongsTo(Line);
 
 LineGroup.hasMany(Line);
+LineGroup.hasMany(Word); // This is kind of a necessary evil for easy word searches...I think? I don't like data duplication though.
+// At any rate, it's the only reference back that the CompoundWords have.
 
 Line.hasMany(LineWord);
 

@@ -1,14 +1,41 @@
 var context = new AudioContext();
 
-class WavFile {
+export class WavFile {
 	file:File;
+	buffer:AudioBuffer;
 	lineStr:string;
+
+	audioSegment(begin = 0, end = this.buffer.duration):AudioSegment {
+		return new AudioSegment(this, begin, end);
+	}
+
 }
 
-class AudioSegment {
-	wavFile:WavFile;
-	begin:number;
-	end:number;
+export class SentenceQueryResults {
+	constructor(public success:boolean, public wordOptions:WordExtractionOption[][] ) {}
+}
+
+export class WordExtractionOptions {
+	constructor(public word:string, public options:WordExtractionOption[]) {}
+}
+
+export class WordExtractionOption {
+	constructor(public segments:AudioSegmentData[], public priority = 200) {
+		
+	}
+}
+
+export class AudioSegmentData {
+	constructor(public wavUuid:string, public length:number, public grammaticalSentence:string, public lineId:number) {}
+}
+
+export class AudioSegment {
+
+	constructor(public wavFile:WavFile,
+		public begin:number,
+		public end:number) {
+		
+	}
 }
 
 function trimToTime(buffer, startTime, endTime) {
