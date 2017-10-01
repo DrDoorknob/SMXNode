@@ -123,7 +123,19 @@ module.exports = function(app, upload) {
 
 	// Download a single WAV file by its ID
 	app.get('/wav/:wavid', (req, res) => {
-		models.WavFile.find(req.params.wavid).then(wav => {
+		let wavId = req.params.wavid;
+		let query;
+		let numReg = /^\d+$/;
+		if (numReg.test(wavId)) {
+			query = {id: wavId};
+		}
+		else {
+			query = {uuid: wavId};
+		}
+		models.WavFile.all({
+			where: query
+		}).then(wavs => {
+			var wav = wavs[0];
 			var filePath = path.join(__dirname, '..', 'uploads', wav.uuid);
 			var stat = fs.statSync(filePath);
 			res.writeHead(200, {
