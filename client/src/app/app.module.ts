@@ -9,6 +9,7 @@ import { HttpModule } from '@angular/http';
 import { WavUploaderComponent } from './components/wav-uploader/wav-uploader.component';
 import 'rxjs/operator/map';
 import 'rxjs/operator/toPromise';
+import { WavService } from './services/wav.service';
 
 @NgModule({
   declarations: [
@@ -19,7 +20,7 @@ import 'rxjs/operator/toPromise';
   imports: [
     BrowserModule, HttpModule, FormsModule
   ],
-  providers: [QueryService, CreationService],
+  providers: [QueryService, CreationService, WavService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

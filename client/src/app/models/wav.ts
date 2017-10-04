@@ -1,9 +1,18 @@
-var context = new AudioContext();
+import { Http } from "@angular/http";
+
+
 
 export class WavFile {
 	file:File;
+	uuid:string;
 	buffer:AudioBuffer;
 	lineStr:string;
+
+	constructor(uuid:string, buffer:AudioBuffer, lineStr:string) {
+		this.uuid = uuid;
+		this.buffer = buffer;
+		this.lineStr = lineStr;
+	}
 
 	audioSegment(begin = 0, end = this.buffer.duration):AudioSegment {
 		return new AudioSegment(this, begin, end);
@@ -12,7 +21,7 @@ export class WavFile {
 }
 
 export class SentenceQueryResults {
-	constructor(public success:boolean, public wordOptions:WordExtractionOption[][] ) {}
+	constructor(public success:boolean, public wordOptions:WordExtractionOptions[] ) {}
 }
 
 export class WordExtractionOptions {
@@ -26,7 +35,16 @@ export class WordExtractionOption {
 }
 
 export class AudioSegmentData {
-	constructor(public wavUuid:string, public length:number, public grammaticalSentence:string, public lineId:number) {}
+	constructor(public wavUuid:string, public bitrate:number, public length:number, public wavBegin:number, public wavEnd:number, public grammaticalSentence:string, public lineId:number) {}
+
+	public static fromJson(rawJsonData:any):AudioSegmentData {
+		return new AudioSegmentData(rawJsonData.wav.uuid,
+			rawJsonData.wav.bitrate,
+			rawJsonData.end - rawJsonData.begin,
+			rawJsonData.begin, rawJsonData.end,
+			rawJsonData.line.grammaticalSentence,
+			rawJsonData.line.id);
+	}
 }
 
 export class AudioSegment {
@@ -38,6 +56,7 @@ export class AudioSegment {
 	}
 }
 
+/*
 function trimToTime(buffer, startTime, endTime) {
 	var newBuffer = context.createBuffer(buffer.numberOfChannels, (endTime - startTime) * buffer.sampleRate, buffer.sampleRate);
 	var array = buffer.getChannelData(0).slice(
@@ -59,7 +78,7 @@ function concatenate(buff1, buff2) {
 	return newBuffer;
 }
 
-/*
+
 $('#execute').click(() => {
 	var files = $('input[type=file]').map((x,i) => i.files[0]);
 	var audios = files.map((x,f) => {
